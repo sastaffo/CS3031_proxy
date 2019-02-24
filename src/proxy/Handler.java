@@ -51,7 +51,7 @@ public class Handler implements Runnable
 
 	public Handler(Socket skt)
 	{
-		println(6, "In Handler.Handler()  " );
+		println("In Handler.Handler()");
 		this.incomingSocket = skt;
 		
 		
@@ -68,56 +68,53 @@ public class Handler implements Runnable
 		catch (Exception e) 
 		{
 			e.printStackTrace();
-			println(0, "Exception in Handler.Handler() - socketTO and BReader setup " );
+			println("Exception in Handler.Handler() - socketTO and BReader setup " );
 		}
 	} // END Handler()
 	
 
 	public void run()
 	{
-		println(6, "In Handler.run()  " );
+		println("In Handler.run()  " );
 		try
 		{
 			this.incomingRequest = this.requestBReader.readLine();
-			println(0, "---> 0 ->  " + this.incomingRequest );
+			println("---> incoming request [" + this.incomingRequest + "]");
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			println(0, "Exception in Handler.run() -  BReader readline " );
+			println("Exception in Handler.run() -  BReader readline " );
 			return;
 		}
 		// loops through and processes all lines of the buffer
 		while(true)
 		{
 			String tmp;
+			// an exception will be thrown when the buffer reader has no lines left to read
+			// then it will exit the loop
 			try {
 				tmp = this.requestBReader.readLine();
 			}
-			catch (Exception e)
-			// an exception will be thrown when the buffer reader has no lines left to read
-			// then it will exit the loop
-			{
-				break;
-			}
+			catch (Exception e) { break; }
+			
 			
 			if (tmp.startsWith("Host:"))
 			{
 				this.host = tmp.substring(6);
-				println(0, "---> " + " ->  HOST = [" + this.host + "]");
+				println("---> HOST = [" + this.host + "]");
 			}
 			else if (tmp.startsWith("User-Agent:"))
 			{
 				this.userAgent = tmp.substring(12);
-				println(0, "---> " + " ->  USER-AGENT = [" + this.userAgent + "]");
+				println("---> USER-AGENT = [" + this.userAgent + "]");
 			}
 			else {
-				println(0, "---> " + " ->  ignore: " + tmp);
+				println("---> ignore: " + tmp);
 				continue;
 			}
 			
 		}
-		println(0, "exit for loop");
 		String[] inreq = this.incomingRequest.split(" ");
 		this.requestType = inreq[0];
 		String urlS = inreq[1];
@@ -155,7 +152,7 @@ public class Handler implements Runnable
 			catch (Exception e)
 			{
 				e.printStackTrace();
-				println(0, "Exception in Handler.run() - setting up connection to noncacheable page" );
+				println("Exception in Handler.run() - setting up connection to noncacheable page" );
 				return;
 			}
 			
@@ -167,7 +164,7 @@ public class Handler implements Runnable
 			catch (ProtocolException e1)
 			{
 				e1.printStackTrace();
-				println(0, "Exception in Handler.run() - invalid request type: " + this.requestType );
+				println("Exception in Handler.run() - invalid request type: " + this.requestType );
 				return;
 			}
 			
@@ -181,18 +178,27 @@ public class Handler implements Runnable
 				this.responseBReader = new BufferedReader(new InputStreamReader(connex.getInputStream()));
 			} catch (IOException e) {
 				e.printStackTrace();
-				println(0, "Exception in Handler.run() - cannot retrieve response" );
+				println("Exception in Handler.run() - cannot retrieve response" );
 				return;
 			}
+			
+			// writes contents of input buffer to output buffer
 			String l;
 			try {
 				while((l = this.responseBReader.readLine()) != null)
 					this.responseBWriter.write(l);
 			} catch (IOException e) {
 				e.printStackTrace();
-				println(0, "Exception in Handler.run() - cannot write response to buffer" );
+				println("Exception in Handler.run() - cannot write response to buffer" );
 				return;
 			}
+			try {
+				this.responseBWriter.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+				println("Exception in Handler.run() - cannot flush buffer" );
+			}
+			println("buffer flushed" );
 		}
 	}
 }

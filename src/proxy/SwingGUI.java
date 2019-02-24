@@ -39,10 +39,7 @@ public class SwingGUI
     public static final String TITLE = "Swing GUI (V 1.00 24/02/2019)" ;
     public static final String NEWLINE = "\n";
     
-    // class variables
-    static boolean DEBUG = true ;
-    static Integer DEBUGLEVEL = 9 ;  // messages to the text area are filtered by this level
-    
+    // class variables   
     static int port = 8080 ;  // the port on which to listen
     
     static ArrayList<Thread> listeningThreads;
@@ -161,24 +158,24 @@ public class SwingGUI
         String actionCommandText ;
         actionCommandText = e.getActionCommand() ;
         
-        println( 3, "In actionPerformed ....." ) ;
-        println( 3, "Action Command Text :>" + actionCommandText + "<") ;
+        println("In actionPerformed ....." ) ;
+        println("Action Command Text :>" + actionCommandText + "<") ;
         
         
         if ( actionCommandText.equals( startButtonText ) )
 	{
-            println( 3, "Start Button Pressed .... " ) ;
+            println("Start Button Pressed .... " ) ;
             try 
             {
                 port = Integer.parseInt(portText.getText());
-                println( 0, "Starting Listener on " + port  + NEWLINE ) ;
+                println("Starting Listener on " + port  + NEWLINE ) ;
                 startListener(port);
                 //startButton.setVisible(false) ; // hide the button - there is no Stop ! 
             }
             catch (Exception f)
             {
 				f.printStackTrace();
-                println( 0, "Oops ... something went wrong trying to listen on the port \n" ) ;
+                println("Oops ... something went wrong trying to listen on the port \n" ) ;
             }
         }
         else if ( actionCommandText.equals( clearTextButtonText ) )
@@ -187,7 +184,7 @@ public class SwingGUI
         }
         else 
         {
-            println( 0, "unidentified action requested >" + actionCommandText + "<" ) ;
+            println("unidentified action requested >" + actionCommandText + "<" ) ;
         }
            
     } // actionPerformed ()
@@ -211,22 +208,19 @@ public class SwingGUI
     } // main()
     
     
-    public static void println ( int level, String message )
-    {		
-        if ( (DEBUG) & (level <= DEBUGLEVEL) )
-        {
-            // Standard Output :		
-            // System.out.println ( message ) ;
+    public static void println (String message )
+    {
+		// Standard Output :		
+        // System.out.println ( message ) ;
 
-            // Text Area Output : 
-            reportArea.append ( NEWLINE + message ) ;
-            // Make sure the newest text is visible
-            reportArea.setCaretPosition(reportArea.getDocument().getLength());
+        // Text Area Output : 
+        reportArea.append ( NEWLINE + message ) ;
+        // Make sure the newest text is visible
+        reportArea.setCaretPosition(reportArea.getDocument().getLength());
 
-            // update report area after each message is appended
-            reportArea.repaint() ;	
-        }
-    } /* println */       
+        // update report area after each message is appended
+        reportArea.repaint() ;	
+    }   
         
     /**
     *
@@ -254,7 +248,7 @@ public class SwingGUI
         }
         catch  (Exception e)
         {
-        	println(0, "Something went wrong starting the listener" ) ;
+        	println("Something went wrong starting the listener" ) ;
         }
 	
 	// do I need to keep this running (I don't think so) ?

@@ -46,7 +46,7 @@ public class Listener implements Runnable
         }
         catch (Exception e)
         {
-        	println(0, "Exception in Listener.Listener() - could not set up Server Socket");
+        	println("Exception in Listener.Listener() - could not set up Server Socket");
         }
         
     }
@@ -71,7 +71,7 @@ public class Listener implements Runnable
 			catch (Exception e) 
 			{	
 				e.printStackTrace();			 
-				println(0, "Exception in Listener.listen() - could not start new handler");
+				println("Exception in Listener.run() - could not start new handler");
 				return;
 			} 
 

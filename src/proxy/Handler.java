@@ -28,7 +28,7 @@ public class Handler implements Runnable
 // implements Runnable because it is started as a thread by Listener
 {
 	// class constants
-	public static final int TIMEOUT = 10000;
+	public static final int TIMEOUT = 1000;
 	public static final String HTTP = "http://";
 	public static final String GET = "GET";
 	// class variables 
@@ -43,6 +43,7 @@ public class Handler implements Runnable
 	String userAgent;
 	
 	int responseCode;
+	InputStreamReader isreader;
 	BufferedReader responseBReader;
 	BufferedWriter responseBWriter;
 	
@@ -173,9 +174,11 @@ public class Handler implements Runnable
 			
 			// with HttpURLConnection, the first time the program encounters a 'response' method
 			// it fetches the response
+			
 			try {
 				this.responseCode = connex.getResponseCode();
-				this.responseBReader = new BufferedReader(new InputStreamReader(connex.getInputStream()));
+				this.isreader = new InputStreamReader(connex.getInputStream());
+				//this.responseBReader = new BufferedReader(this.isreader);
 			} catch (IOException e) {
 				e.printStackTrace();
 				println("Exception in Handler.run() - cannot retrieve response" );
@@ -183,10 +186,10 @@ public class Handler implements Runnable
 			}
 			
 			// writes contents of input buffer to output buffer
-			String l;
+			Integer i;
 			try {
-				while((l = this.responseBReader.readLine()) != null)
-					this.responseBWriter.write(l);
+				while((i = this.isreader.read()) != null)
+					this.responseBWriter.write(i);
 			} catch (IOException e) {
 				e.printStackTrace();
 				println("Exception in Handler.run() - cannot write response to buffer" );
@@ -199,6 +202,24 @@ public class Handler implements Runnable
 				println("Exception in Handler.run() - cannot flush buffer" );
 			}
 			println("buffer flushed" );
+			
+
+			try {
+				this.isreader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				println("Exception in Handler.run() - cannot close isreader" );
+			}
+			println("isreader closed" );
+			try {
+				this.responseBWriter.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				println("Exception in Handler.run() - cannot close buffer responseBWriter" );
+			}
+			println("responseBWriter closed");
+			this.connex.disconnect();
+			println("connex disconnected");
 		}
 	}
 }

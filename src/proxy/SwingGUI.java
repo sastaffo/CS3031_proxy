@@ -174,6 +174,7 @@ public class SwingGUI
             }
             catch (Exception f)
             {
+				f.printStackTrace();
                 println( 0, "Oops ... something went wrong trying to listen on the port \n" ) ;
             }
         }

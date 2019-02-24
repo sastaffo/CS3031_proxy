@@ -3,6 +3,9 @@
 *
 * Simple Listener with a Swing GUI - which listens on an IP port
 * and reports on requests.
+* 
+* worked on project with John Stafford-Langan (my dad)
+* https://github.com/johnsl01/SwingListener/
 *
 */
 
@@ -33,7 +36,7 @@ public class SwingGUI
     // class constants
 	private static final int PORT = 8082;
     private static final long serialVersionUID = 1L;
-    public static final String TITLE = "Swing Listener (V 1.00 22/02/2019)" ;
+    public static final String TITLE = "Swing GUI (V 1.00 24/02/2019)" ;
     public static final String NEWLINE = "\n";
     
     // class variables

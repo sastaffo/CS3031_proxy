@@ -1,12 +1,15 @@
 package proxy;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import static proxy.SwingGUI.println;
 
+import java.util.ArrayList;
+
+// This class does not error check on the user-entered domain names
+// It assumes that the user will always enter correctly formed domain names,
+// eg www.google.com
 public class Blocker
 {
 	ArrayList<String> blockedHosts;
-	Comparator<String> c;
 	
 	public Blocker() 
 	{
@@ -18,7 +21,11 @@ public class Blocker
 		if (!this.blockedHosts.contains(host))
 		{
 			this.blockedHosts.add(host);
+			println(0, "Blocked: [" + host + "]");
+			this.sort();
+			return;
 		}
+		println(0, "[" + host + "] is already blocked");
 	}
 	
 	public void unblock(String host)
@@ -26,7 +33,10 @@ public class Blocker
 		if (this.blockedHosts.contains(host))
 		{
 			this.blockedHosts.remove(host);
+			println(0, "Block removed on: [" + host + "]");
+			return;
 		}
+		println(0, "Cannot unblock: [" + host + "] - not present in list of blocked sites");
 	}
 	
 	// checks if host of request made has been blocked
@@ -34,6 +44,7 @@ public class Blocker
 	{
 		return (this.blockedHosts.contains(host));
 	}
+	
 	
 	private void sort()
 	{

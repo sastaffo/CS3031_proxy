@@ -28,11 +28,9 @@ public class Handler implements Runnable
 // implements Runnable because it is started as a thread by Listener
 {
 	// class constants
+	public static final int TIMEOUT = 10000;
 	public static final String HTTP = "http://";
 	public static final String GET = "GET";
-	public static final String HEAD = "HEAD";
-	public static final String POST = "POST";
-	
 	// class variables 
 	Socket incomingSocket;
 	
@@ -59,7 +57,7 @@ public class Handler implements Runnable
 		
 		try
 		{
-			this.incomingSocket.setSoTimeout(5000);
+			this.incomingSocket.setSoTimeout(TIMEOUT);
 			this.requestBReader = new BufferedReader(new InputStreamReader(
 							this.incomingSocket.getInputStream())) ;
 			this.requestBWriter = new BufferedWriter(new OutputStreamWriter(
@@ -196,7 +194,5 @@ public class Handler implements Runnable
 				return;
 			}
 		}
-		
-	} // END run()
-	
-} // END class Handler
+	}
+}

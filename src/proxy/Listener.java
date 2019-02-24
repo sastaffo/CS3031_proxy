@@ -27,9 +27,10 @@ public class Listener implements Runnable
     // class variables 
     int port; // the port on which to listen
     
-    static ArrayList<Thread> handlers;
+    ArrayList<Thread> handlers;
     
     ServerSocket incomingSocket;
+    
     
     // constructor
     public Listener (int prt)
@@ -48,7 +49,7 @@ public class Listener implements Runnable
         	println(0, "Exception in Listener.Listener() - could not set up Server Socket");
         }
         
-    } // END Listener()
+    }
     
     public void run()
     {   	
@@ -63,7 +64,7 @@ public class Listener implements Runnable
 				Thread sh = new Thread(new Handler(skt));
 				
 				// store threads in array list as created
-				handlers.add(sh);
+				this.handlers.add(sh);
 				
 				sh.start();	
 			} 
@@ -75,6 +76,6 @@ public class Listener implements Runnable
 			} 
 
 		}
-    } // END run()
+    }
   
-} // END class Listener
+}

@@ -3,7 +3,8 @@ package proxy;
 import java.util.ArrayList;
 import java.util.Comparator;
 
-public class Blocker {
+public class Blocker
+{
 	ArrayList<String> blockedHosts;
 	Comparator<String> c;
 	
@@ -22,28 +23,32 @@ public class Blocker {
 	
 	public void unblock(String host)
 	{
-		
+		if (this.blockedHosts.contains(host))
+		{
+			this.blockedHosts.remove(host);
+		}
 	}
 	
 	// checks if host of request made has been blocked
-	public static boolean isBlocked(String host)
+	public boolean isBlocked(String host)
 	{
-		return false;
+		return (this.blockedHosts.contains(host));
 	}
 	
-	public void sort()
+	private void sort()
 	{
-		
+		this.blockedHosts = quickSort(this.blockedHosts);
 	}
+	
 	// quickSort algorithm adapted from: https://stackoverflow.com/a/33971385
-	public ArrayList<String> quickSort(ArrayList<String> list)
+	private static ArrayList<String> quickSort(ArrayList<String> list)
 	{
 	    if (list.isEmpty()) 
 	        return list; // start with recursion base case
 	    
 	    ArrayList<String> smaller = new ArrayList<String>(); 	// all Strings smaller than pivot
 	    ArrayList<String> greater = new ArrayList<String>(); 	// all Strings greater than pivot
-	    String pivot = list.get(0);  // first Vehicle in list, used as pivot
+	    String pivot = list.get(0);								// first Vehicle in list, used as pivot
 	    int i;
 	    String j;     // Variable used for String in the loop
 	    for (i=1;i<list.size();i++)

@@ -11,6 +11,8 @@ package proxy;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 // import java.io.IOException;
 import java.io.InputStreamReader;
@@ -28,7 +30,7 @@ public class Handler implements Runnable
 // implements Runnable because it is started as a thread by Listener
 {
 	// class constants
-	public static final int TIMEOUT = 1000;
+	public static final int TIMEOUT = 100;
 	public static final String HTTP = "http://";
 	public static final String GET = "GET";
 	
@@ -37,8 +39,27 @@ public class Handler implements Runnable
 	int id;
 	Socket incomingSocket;
 	
-	BufferedReader requestBReader;
-	BufferedWriter requestBWriter;
+	// reader of request from client to proxy
+	ByteArrayInputStream clientproxyByteIn;
+	InputStreamReader clientproxyISReader;
+	BufferedReader clientproxyBReader;
+
+	// writer of request from proxy to server
+	ByteArrayOutputStream proxyserverByteOut;
+	OutputStreamWriter proxyserverOSWriter;
+	BufferedWriter proxyserverBWriter;
+	
+	// reader of response from server to proxy
+	ByteArrayInputStream serverproxyByte;
+	InputStreamReader serverproxyISReader;
+	BufferedReader serverproxyBReader;
+
+	// writer of response from proxy to client
+	ByteArrayOutputStream proxyclientByteOut;
+	OutputStreamWriter proxyclientOSWriter;
+	BufferedWriter proxyclientBWriter;
+	
+	
 	// HTTP Request:
 	String incomingRequest;
 	String requestType;
@@ -46,10 +67,6 @@ public class Handler implements Runnable
 	String userAgent;
 	
 	int responseCode;
-	InputStreamReader isreader;
-	OutputStreamWriter oswriter;
-	BufferedReader responseBReader;
-	BufferedWriter responseBWriter;
 	
 	URL url;
 	HttpURLConnection connex;
@@ -63,19 +80,19 @@ public class Handler implements Runnable
 		
 		try
 		{
-			this.incomingSocket.setSoTimeout(TIMEOUT);
-			this.requestBReader = new BufferedReader(new InputStreamReader(
-							this.incomingSocket.getInputStream())) ;
-			this.requestBWriter = new BufferedWriter(new OutputStreamWriter(
-							skt.getOutputStream()));
-			this.oswriter = new OutputStreamWriter(
-					skt.getOutputStream());
-			this.responseBWriter = new BufferedWriter(this.oswriter);
+			//this.incomingSocket.setSoTimeout(TIMEOUT);
+			this.clientproxyByteIn = (ByteArrayInputStream) this.incomingSocket.getInputStream();
+			this.clientproxyISReader = new InputStreamReader(this.clientproxyByteIn);
+			this.clientproxyBReader = new BufferedReader(this.clientproxyBReader);
+			
+			this.proxyclientByteOut = (ByteArrayOutputStream) this.incomingSocket.getOutputStream();
+			this.proxyclientOSWriter = new OutputStreamWriter(this.proxyclientByteOut);
+			this.proxyserverBWriter = new BufferedWriter(this.proxyclientOSWriter);
 		} 
 		catch (Exception e) 
 		{
 			e.printStackTrace();
-			println("" + this.id + " > Exception in Handler.Handler() - socketTO and BReader setup " );
+			println("" + this.id + " > Exception in Handler.Handler() - socketTO and i/o stream reader/writer setup " );
 		}
 	} // END Handler()
 	

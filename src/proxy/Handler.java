@@ -31,7 +31,10 @@ public class Handler implements Runnable
 	public static final int TIMEOUT = 1000;
 	public static final String HTTP = "http://";
 	public static final String GET = "GET";
-	// class variables 
+	
+	
+	// instance variables 
+	int id;
 	Socket incomingSocket;
 	
 	BufferedReader requestBReader;
@@ -44,15 +47,17 @@ public class Handler implements Runnable
 	
 	int responseCode;
 	InputStreamReader isreader;
+	OutputStreamWriter oswriter;
 	BufferedReader responseBReader;
 	BufferedWriter responseBWriter;
 	
 	URL url;
 	HttpURLConnection connex;
 
-	public Handler(Socket skt)
+	public Handler(Socket skt, int id)
 	{
-		println("In Handler.Handler()");
+		this.id = id;
+		println("In Handler.Handler() = " + this.id);
 		this.incomingSocket = skt;
 		
 		
@@ -63,29 +68,30 @@ public class Handler implements Runnable
 							this.incomingSocket.getInputStream())) ;
 			this.requestBWriter = new BufferedWriter(new OutputStreamWriter(
 							skt.getOutputStream()));
-			this.responseBWriter = new BufferedWriter(new OutputStreamWriter(
-					skt.getOutputStream()));
+			this.oswriter = new OutputStreamWriter(
+					skt.getOutputStream());
+			this.responseBWriter = new BufferedWriter(this.oswriter);
 		} 
 		catch (Exception e) 
 		{
 			e.printStackTrace();
-			println("Exception in Handler.Handler() - socketTO and BReader setup " );
+			println("" + this.id + " > Exception in Handler.Handler() - socketTO and BReader setup " );
 		}
 	} // END Handler()
 	
 
 	public void run()
 	{
-		println("In Handler.run()  " );
+		println("" + this.id + " > In Handler.run()  " );
 		try
 		{
 			this.incomingRequest = this.requestBReader.readLine();
-			println("---> incoming request [" + this.incomingRequest + "]");
+			println("" + this.id + " > ---> incoming request [" + this.incomingRequest + "]");
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			println("Exception in Handler.run() -  BReader readline " );
+			println("" + this.id + " > Exception in Handler.run() -  BReader readline " );
 			return;
 		}
 		// loops through and processes all lines of the buffer
@@ -103,15 +109,15 @@ public class Handler implements Runnable
 			if (tmp.startsWith("Host:"))
 			{
 				this.host = tmp.substring(6);
-				println("---> HOST = [" + this.host + "]");
+				println("" + this.id + " > HOST = [" + this.host + "]");
 			}
 			else if (tmp.startsWith("User-Agent:"))
 			{
 				this.userAgent = tmp.substring(12);
-				println("---> USER-AGENT = [" + this.userAgent + "]");
+				println("" + this.id + " > USER-AGENT = [" + this.userAgent + "]");
 			}
 			else {
-				println("---> ignore: " + tmp);
+				//println("" + this.id + " > ignore: " + tmp);
 				continue;
 			}
 			
@@ -153,19 +159,21 @@ public class Handler implements Runnable
 			catch (Exception e)
 			{
 				e.printStackTrace();
-				println("Exception in Handler.run() - setting up connection to noncacheable page" );
+				println("" + this.id + " > Exception in Handler.run() - setting up connection to noncacheable page" );
 				return;
 			}
 			
 			// sets request type as taken from client
 			try
 			{
+				//if (this.requestType.equals("CONNECT"))
+					//this.requestType = "GET";
 				this.connex.setRequestMethod(this.requestType);
 			}
 			catch (ProtocolException e1)
 			{
 				e1.printStackTrace();
-				println("Exception in Handler.run() - invalid request type: " + this.requestType );
+				println("" + this.id + " > Exception in Handler.run() - invalid request type: [" + this.requestType + "]");
 				return;
 			}
 			
@@ -181,7 +189,7 @@ public class Handler implements Runnable
 				//this.responseBReader = new BufferedReader(this.isreader);
 			} catch (IOException e) {
 				e.printStackTrace();
-				println("Exception in Handler.run() - cannot retrieve response" );
+				println("" + this.id + " > Exception in Handler.run() - cannot retrieve response" );
 				return;
 			}
 			
@@ -189,37 +197,49 @@ public class Handler implements Runnable
 			Integer i;
 			try {
 				while((i = this.isreader.read()) != null)
-					this.responseBWriter.write(i);
+					this.oswriter.write(i);
 			} catch (IOException e) {
 				e.printStackTrace();
-				println("Exception in Handler.run() - cannot write response to buffer" );
-				return;
+				println("" + this.id + " > Exception in Handler.run() - cannot write response to output stream" );
+				//return;
 			}
 			try {
 				this.responseBWriter.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
-				println("Exception in Handler.run() - cannot flush buffer" );
+				println("" + this.id + " > Exception in Handler.run() - cannot flush buffer" );
+				//return;
 			}
-			println("buffer flushed" );
+			println("" + this.id + " > buffer flushed" );
 			
 
 			try {
 				this.isreader.close();
 			} catch (IOException e) {
 				e.printStackTrace();
-				println("Exception in Handler.run() - cannot close isreader" );
+				println("" + this.id + " > Exception in Handler.run() - cannot close isreader" );
+				//return;
 			}
-			println("isreader closed" );
+			println("" + this.id + " > isreader closed" );
 			try {
 				this.responseBWriter.close();
 			} catch (IOException e) {
 				e.printStackTrace();
-				println("Exception in Handler.run() - cannot close buffer responseBWriter" );
+				println("" + this.id + " > Exception in Handler.run() - cannot close responseBWriter" );
+				//return;
 			}
-			println("responseBWriter closed");
-			this.connex.disconnect();
-			println("connex disconnected");
+			println("" + this.id + " > responseBWriter closed");
+			//this.connex.disconnect();
+			//println("connex disconnected");
+			
+			try {
+				this.oswriter.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				println("" + this.id + " > Exception in Handler.run() - cannot close oswriter" );
+				//return;
+			}
+			println("" + this.id + " > oswriter closed");
 		}
 	}
 }

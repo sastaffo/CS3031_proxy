@@ -24,7 +24,10 @@ import static proxy.SwingGUI.println;
 public class Listener implements Runnable
 // implements Runnable because it is started as a thread by the gui
 {
-    // class variables 
+	// class variables
+	static int handlerID = 0;
+	
+    // instance variables 
     int port; // the port on which to listen
     
     ArrayList<Thread> handlers;
@@ -61,7 +64,7 @@ public class Listener implements Runnable
 				Socket skt = incomingSocket.accept();
 				
 				// Construct new handler thread
-				Thread sh = new Thread(new Handler(skt));
+				Thread sh = new Thread(new Handler(skt, handlerID++));
 				
 				// store threads in array list as created
 				this.handlers.add(sh);

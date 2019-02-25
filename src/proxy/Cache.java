@@ -5,16 +5,18 @@ import org.apache.commons.collections4.MapIterator;
 import org.apache.commons.collections4.map.LRUMap;
 // adapted from
 // https://crunchify.com/how-to-create-a-simple-in-memory-cache-in-java-lightweight-cache/
-public class Cache<K, V>
+@SuppressWarnings("hiding")
+public class Cache<String, File>
 {	
+	static java.lang.String[] fileExtensions = {".png", ".html", ".htm", ".jpg", ".txt", ".pdf"};
 	private long lifetime;
-	private LRUMap<K,CacheObject> cachemap;
+	private LRUMap<String,CacheObject> cachemap;
 	
 	// nested class
 	protected class CacheObject {
 		public long lastAccessed;
-		public V value;
-		protected CacheObject(V val)
+		public File value;
+		protected CacheObject(File val)
 		{
 			this.lastAccessed = System.currentTimeMillis();
 			this.value = val;
@@ -24,7 +26,7 @@ public class Cache<K, V>
 	public Cache(int lifetimems, long timerInterval, int maxItems)
 	{
 		this.lifetime = lifetimems * 1000;
-		this.cachemap = new LRUMap<K,CacheObject>(maxItems);
+		this.cachemap = new LRUMap<String,CacheObject>(maxItems);
 		if ((this.lifetime > 0) && (timerInterval > 0))
 		{
 			Thread t = new Thread(new Runnable()
@@ -43,8 +45,7 @@ public class Cache<K, V>
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	public void put(K key, V val)
+	public void put(String key, File val)
 	{
 		synchronized (this.cachemap)
 		{
@@ -52,8 +53,7 @@ public class Cache<K, V>
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	protected V get(K key)
+	protected File get(String key)
 	{
 		synchronized (this.cachemap)
 		{
@@ -70,7 +70,7 @@ public class Cache<K, V>
 		
 	}
 	
-	public void remove(K key)
+	public void remove(String key)
 	{
 		synchronized (this.cachemap)
 		{
@@ -90,18 +90,18 @@ public class Cache<K, V>
 	public void cleanup()
 	{
 		long now = System.currentTimeMillis();
-		ArrayList<K> cleanupList = null;
+		ArrayList<String> cleanupList;
 		synchronized (this.cachemap)
 		{
 			MapIterator itr = this.cachemap.mapIterator();
-			cleanupList = new ArrayList<K>((this.size()/2)+1);
-			K k = null;
+			cleanupList = new ArrayList<String>((this.size()/2)+1);
+			String k = null;
 			CacheObject c = null;
 			
 			// loops through all cache objects to check when they were last accessed
 			while (itr.hasNext())
 			{
-				k = (K) itr.next();
+				k = (String) itr.next();
 				c = (CacheObject) itr.getValue();
 				// if there is still time before the cache entry times out
 				if (c != null && (now > (this.lifetime + c.lastAccessed)))
@@ -110,7 +110,7 @@ public class Cache<K, V>
 		}
 		// runs through all keys on the list compiled in the previous loop
 		// and removes them from the cache
-		for (K k : cleanupList)
+		for (String k : cleanupList)
 		{
 			synchronized (this.cachemap)
 			{
@@ -124,8 +124,21 @@ public class Cache<K, V>
 	
 	// analyses url string to determine if can be cached
 	// eg is a text file or image
-	public static boolean isCacheable(String url)
+	public static boolean isCacheable(java.lang.String url)
 	{
+		url = url.toLowerCase();
+		
+		if (!url.startsWith("https")) {
+			if (!url.contains("?")) {
+				if (url.endsWith("/"))
+					url = url.substring(0, url.length()-2);
+				for (int i=0; i<fileExtensions.length; i++)
+				{
+					if (url.endsWith(fileExtensions[i]))
+						return true;
+				}
+			}
+		}
 		return false;
 	}
 }

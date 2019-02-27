@@ -8,8 +8,8 @@ import org.apache.commons.collections4.map.LRUMap;
 @SuppressWarnings("hiding")
 public class Cache<String, File>
 {	
-	static java.lang.String[] imageExtensions = {".png", ".jpg", ".gif"};
-	static java.lang.String[] fileExtensions = {".html", ".htm", ".txt", ".pdf", ".css"};
+	static java.lang.String[] imageExtensions = {".png", ".jpeg", ".jpg", ".gif", ".pdf", ".tiff"};
+	static java.lang.String[] fileExtensions = {".html", ".htm", ".txt", ".css", ".js"};
 	private long lifetime;
 	private LRUMap<String,CacheObject> cachemap;
 	

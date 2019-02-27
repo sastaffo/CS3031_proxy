@@ -8,7 +8,8 @@ import org.apache.commons.collections4.map.LRUMap;
 @SuppressWarnings("hiding")
 public class Cache<String, File>
 {	
-	static java.lang.String[] fileExtensions = {".png", ".html", ".htm", ".jpg", ".txt", ".pdf", ".css"};
+	static java.lang.String[] imageExtensions = {".png", ".jpg", ".gif"};
+	static java.lang.String[] fileExtensions = {".html", ".htm", ".txt", ".pdf", ".css"};
 	private long lifetime;
 	private LRUMap<String,CacheObject> cachemap;
 	
@@ -127,16 +128,32 @@ public class Cache<String, File>
 	public static boolean isCacheable(java.lang.String url)
 	{
 		/*
-		String urltmp = url.toLowerCase();
+		url = url.toLowerCase();
 		
-		if (!urltmp.contains("?")) {
+		if (!url.contains("?")) {
+			for (int i=0; i<imageExtensions.length; i++)
+			{
+				if (url.contains(imageExtensions[i]))
+					return true;
+			}
 			for (int i=0; i<fileExtensions.length; i++)
 			{
-				if (urltmp.contains(fileExtensions[i]))
+				if (url.contains(fileExtensions[i]))
 					return true;
 			}
 		}
 		*/
+		return false;
+	}
+	
+	public static boolean isImage(java.lang.String url)
+	{
+		url = url.toLowerCase();
+		for (int i=0; i<imageExtensions.length; i++)
+		{
+			if (url.contains(imageExtensions[i]))
+				return true;
+		}
 		return false;
 	}
 }

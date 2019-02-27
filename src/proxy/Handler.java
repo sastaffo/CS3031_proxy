@@ -9,6 +9,7 @@
 
 package proxy;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -25,6 +26,8 @@ import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.stream.Stream;
+
+import javax.imageio.ImageIO;
 
 import static proxy.SwingGUI.println;
 
@@ -142,18 +145,6 @@ public class Handler implements Runnable
 		if (this.requestType.equals(GET) && Cache.isCacheable(urlS))
 		{
 			this.cacheablePage(urlS);
-			/*
-			if in-cache
-				send HEAD to see if cached file is up to date
-				if up to date
-					send cached to client
-					{continue}
-				//else, treat as if not cached
-			//else, not in cache
-			GET page
-			add to cache
-			send to client
-			*/
 			
 		}
 		else // non-cacheable page or non-GET request
@@ -178,7 +169,18 @@ public class Handler implements Runnable
 	 */
 	private void cacheablePage(String urlString)
 	{
-		
+		/*
+		if in-cache
+			send HEAD to see if cached file is up to date
+			if up to date
+				send cached to client
+				{continue}
+			//else, treat as if not cached
+		//else, not in cache
+		GET page
+		add to cache
+		send to client
+		*/
 	}
 		
 	/**
@@ -193,6 +195,8 @@ public class Handler implements Runnable
 			this.url = new URL(urlString);
 			// opens connection with url
 			this.connex = (HttpURLConnection) this.url.openConnection();
+			this.connex.setUseCaches(false);
+			this.connex.setDoOutput(true);
 			//this.connex.connect();
 		}
 		catch (Exception e)
@@ -232,9 +236,6 @@ public class Handler implements Runnable
 			//this.connex.
 			this.responseCode = connex.getResponseCode();
 			
-			this.serverproxyByte = connex.getInputStream();
-			this.serverproxyISReader = new InputStreamReader(this.serverproxyByte);
-			//this.serverproxyBReader = new BufferedReader(this.serverproxyISReader);
 			
 		} catch (IOException e)
 		{
@@ -244,13 +245,39 @@ public class Handler implements Runnable
 		}
 		
 		// writes contents of input buffer to output buffer
-		Integer i;
+		String i;
 		try
 		{
-			while((i = this.serverproxyISReader.read()) != null)
+			if (Cache.isImage(urlString))
 			{
-				this.proxyclientOSWriter.write(i);
+				BufferedImage image = ImageIO.read(this.url);
+				if (image == null)
+				{
+					this.proxyclientBWriter.write(httpResponseCode(RESPONSE_CODE_NF));
+					this.proxyclientBWriter.flush();
+					return;
+				}
+				
+				this.proxyclientBWriter.write(httpResponseCode(RESPONSE_CODE_OK));
+				this.proxyclientBWriter.flush();
+				ImageIO.write(image, "image", this.incomingSocket.getOutputStream());
 			}
+			else
+			{
+				this.serverproxyByte = connex.getInputStream();
+				this.serverproxyISReader = new InputStreamReader(this.serverproxyByte);
+				this.serverproxyBReader = new BufferedReader(this.serverproxyISReader);
+				
+				this.proxyclientBWriter.write(httpResponseCode(RESPONSE_CODE_OK));
+				
+				while((i = this.serverproxyBReader.readLine()) != null)
+				{
+					this.proxyclientBWriter.write(i);
+				}
+				this.proxyclientBWriter.flush();
+				this.serverproxyBReader.close();
+			}
+			
 		} catch (IOException e)
 		{
 			e.printStackTrace();
@@ -341,5 +368,10 @@ public class Handler implements Runnable
 			
 		}
 		println("" + this.id + " > exited while" );
+	}
+	
+	private static String httpResponseCode(String code)
+	{
+		return (VERSION + " " + code + "\n" + PROXY_AGENT + "\n\r\n");
 	}
 }

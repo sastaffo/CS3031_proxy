@@ -8,7 +8,7 @@ import org.apache.commons.collections4.map.LRUMap;
 @SuppressWarnings("hiding")
 public class Cache<String, File>
 {	
-	static java.lang.String[] fileExtensions = {".png", ".html", ".htm", ".jpg", ".txt", ".pdf"};
+	static java.lang.String[] fileExtensions = {".png", ".html", ".htm", ".jpg", ".txt", ".pdf", ".css"};
 	private long lifetime;
 	private LRUMap<String,CacheObject> cachemap;
 	
@@ -126,19 +126,17 @@ public class Cache<String, File>
 	// eg is a text file or image
 	public static boolean isCacheable(java.lang.String url)
 	{
-		url = url.toLowerCase();
+		/*
+		String urltmp = url.toLowerCase();
 		
-		if (!url.startsWith("https")) {
-			if (!url.contains("?")) {
-				if (url.endsWith("/"))
-					url = url.substring(0, url.length()-2);
-				for (int i=0; i<fileExtensions.length; i++)
-				{
-					if (url.endsWith(fileExtensions[i]))
-						return true;
-				}
+		if (!urltmp.contains("?")) {
+			for (int i=0; i<fileExtensions.length; i++)
+			{
+				if (urltmp.contains(fileExtensions[i]))
+					return true;
 			}
 		}
+		*/
 		return false;
 	}
 }

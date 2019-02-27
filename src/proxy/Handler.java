@@ -14,8 +14,10 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 // import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
@@ -30,17 +32,26 @@ public class Handler implements Runnable
 // implements Runnable because it is started as a thread by Listener
 {
 	// class constants
-	public static final int TIMEOUT = 100;
+	public static final int LF = 10; // line feed - end of line character in ascii
+	public static final int TIMEOUT = 2000;
 	public static final String HTTP = "http://";
 	public static final String GET = "GET";
+	public static final String CONNECT = "CONNECT";
+	
+	
+	public static final String VERSION = "HTTP/1.0";
+	public static final String RESPONSE_CODE_OK = "200 OK";
+	public static final String RESPONSE_CODE_NF = "404 NOT FOUND";
+	public static final String PROXY_AGENT = "Proxy-Agent: ProxyServer/1.0";
 	
 	
 	// instance variables 
 	int id;
+	Blocker blocker;
 	Socket incomingSocket;
 	
 	// reader of request from client to proxy
-	ByteArrayInputStream clientproxyByteIn;
+	InputStream clientproxyByteIn;
 	InputStreamReader clientproxyISReader;
 	BufferedReader clientproxyBReader;
 
@@ -50,12 +61,12 @@ public class Handler implements Runnable
 	BufferedWriter proxyserverBWriter;
 	
 	// reader of response from server to proxy
-	ByteArrayInputStream serverproxyByte;
+	InputStream serverproxyByte;
 	InputStreamReader serverproxyISReader;
 	BufferedReader serverproxyBReader;
 
 	// writer of response from proxy to client
-	ByteArrayOutputStream proxyclientByteOut;
+	OutputStream proxyclientByteOut;
 	OutputStreamWriter proxyclientOSWriter;
 	BufferedWriter proxyclientBWriter;
 	
@@ -71,23 +82,25 @@ public class Handler implements Runnable
 	URL url;
 	HttpURLConnection connex;
 
-	public Handler(Socket skt, int id)
+	public Handler(Socket skt, int id, Blocker b)
 	{
 		this.id = id;
+		this.blocker = b;
 		println("In Handler.Handler() = " + this.id);
 		this.incomingSocket = skt;
 		
 		
 		try
 		{
-			//this.incomingSocket.setSoTimeout(TIMEOUT);
-			this.clientproxyByteIn = (ByteArrayInputStream) this.incomingSocket.getInputStream();
+			this.incomingSocket.setSoTimeout(TIMEOUT);
+			this.clientproxyByteIn = this.incomingSocket.getInputStream();
 			this.clientproxyISReader = new InputStreamReader(this.clientproxyByteIn);
 			this.clientproxyBReader = new BufferedReader(this.clientproxyBReader);
 			
-			this.proxyclientByteOut = (ByteArrayOutputStream) this.incomingSocket.getOutputStream();
+			this.proxyclientByteOut = this.incomingSocket.getOutputStream();
 			this.proxyclientOSWriter = new OutputStreamWriter(this.proxyclientByteOut);
 			this.proxyserverBWriter = new BufferedWriter(this.proxyclientOSWriter);
+			
 		} 
 		catch (Exception e) 
 		{
@@ -97,33 +110,216 @@ public class Handler implements Runnable
 	} // END Handler()
 	
 
+
+	
 	public void run()
 	{
 		println("" + this.id + " > In Handler.run()  " );
+		
+		this.processRequest();
+		// before going further, checks if the host has been blocked by proxy user.
+		if (this.blocker.isBlocked(this.host))
+		{
+			println("" + this.id + " > There was an attempt to access blocked host: [" + this.host + "]" );
+			return;
+		}
+		
+		// dissection of incoming request string
+		String[] inreq = this.incomingRequest.split(" ");
+		this.requestType = inreq[0];
+		String urlS = inreq[1];
+		
+		// checks if https request
+		if (this.requestType.equals(CONNECT))
+			this.secureRequest(urlS);
+		
+		// if url doesn't contain http
+		// prepend 'http://'
+		if (!urlS.startsWith("http"))
+			urlS = HTTP + urlS;
+		
+		
+		if (this.requestType.equals(GET) && Cache.isCacheable(urlS))
+		{
+			this.cacheablePage(urlS);
+			/*
+			if in-cache
+				send HEAD to see if cached file is up to date
+				if up to date
+					send cached to client
+					{continue}
+				//else, treat as if not cached
+			//else, not in cache
+			GET page
+			add to cache
+			send to client
+			*/
+			
+		}
+		else // non-cacheable page or non-GET request
+		{
+			this.nonCacheablePage(urlS);
+		}
+
+	}
+	
+	/**
+	 * 
+	 * @param urlString
+	 */
+	private void secureRequest(String urlString)
+	{
+		
+	}
+	
+	/**
+	 * 
+	 * @param urlString
+	 */
+	private void cacheablePage(String urlString)
+	{
+		
+	}
+		
+	/**
+	 * 
+	 * @param urlString
+	 */
+	private void nonCacheablePage(String urlString)
+	{
 		try
 		{
-			this.incomingRequest = this.requestBReader.readLine();
+			// creates url from url given in client request
+			this.url = new URL(urlString);
+			// opens connection with url
+			this.connex = (HttpURLConnection) this.url.openConnection();
+			//this.connex.connect();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			println("" + this.id + " > Exception in Handler.run() - setting up connection to noncacheable page" );
+			return;
+		}
+		// adds User-Agent field taken from client
+		this.connex.setRequestProperty("User-Agent", this.userAgent);
+		
+		// sets request type as taken from client
+		try
+		{
+			this.connex.setRequestMethod(this.requestType);
+		}
+		catch (IllegalStateException e)
+		{
+			println("" + this.id + " > Exception in Handler.run() - IllegalStateException");
+			e.printStackTrace();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			println("" + this.id + " > Exception in Handler.run() - invalid request type: ["
+					   + this.requestType + "]");
+			return;
+		}
+		
+		
+		
+		// with HttpURLConnection, the first time the program encounters a 'response' method
+		// it fetches the response
+		
+		try
+		{
+			//this.connex.
+			this.responseCode = connex.getResponseCode();
+			
+			this.serverproxyByte = connex.getInputStream();
+			this.serverproxyISReader = new InputStreamReader(this.serverproxyByte);
+			//this.serverproxyBReader = new BufferedReader(this.serverproxyISReader);
+			
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+			println("" + this.id + " > Exception in Handler.run() - cannot retrieve response" );
+			return;
+		}
+		
+		// writes contents of input buffer to output buffer
+		Integer i;
+		try
+		{
+			while((i = this.serverproxyISReader.read()) != null)
+			{
+				this.proxyclientOSWriter.write(i);
+			}
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+			println("" + this.id + " > Exception in Handler.run() - cannot write response to output stream" );
+			//return;
+		}
+
+		try {
+			this.serverproxyISReader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			println("" + this.id + " > Exception in Handler.run() - cannot close serverproxyISReader" );
+			//return;
+		}
+		println("" + this.id + " > serverproxyISReader closed" );
+
+		//this.connex.disconnect();
+		//println("connex disconnected");
+		
+		try {
+			this.proxyclientOSWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			println("" + this.id + " > Exception in Handler.run() - cannot close proxyclientOSWriter" );
+			//return;
+		}
+		println("" + this.id + " > proxyclientOSWriter closed");
+		return;
+	}
+	
+	/**
+	 * split incoming request request into different segments and adds them to instance variables
+	 */
+	private void processRequest()
+	{
+		try
+		{
+			// the first line will contain the http request: the method and URL
+			this.incomingRequest = this.clientproxyBReader.readLine();
 			println("" + this.id + " > ---> incoming request [" + this.incomingRequest + "]");
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			println("" + this.id + " > Exception in Handler.run() -  BReader readline " );
+			println("" + this.id + " > Exception in Handler.run() -  ISReader readline " );
 			return;
 		}
 		// loops through and processes all lines of the buffer
-		while(true)
+		int x = 0;
+		boolean readingLines = true;
+		while(readingLines)
 		{
-			String tmp;
+			String tmp = "";
 			// an exception will be thrown when the buffer reader has no lines left to read
 			// then it will exit the loop
 			try {
-				tmp = this.requestBReader.readLine();
+				tmp = this.clientproxyBReader.readLine();
 			}
-			catch (Exception e) { break; }
+			catch (Exception e) {
+				println("" + this.id + " > exiting while(true) - request parsing complete [exception]" );
+				readingLines=false;
+			}
 			
-			
-			if (tmp.startsWith("Host:"))
+			if (tmp == null || tmp.equals(""))
+			{
+				println("" + this.id + " > exiting while(true) - request parsing complete [null/empty string]" );
+				readingLines=false;
+			}
+			else if (tmp.startsWith("Host:"))
 			{
 				this.host = tmp.substring(6);
 				println("" + this.id + " > HOST = [" + this.host + "]");
@@ -134,129 +330,16 @@ public class Handler implements Runnable
 				println("" + this.id + " > USER-AGENT = [" + this.userAgent + "]");
 			}
 			else {
-				//println("" + this.id + " > ignore: " + tmp);
+				String t2;
+				if (tmp.length() > 20)
+					t2 = tmp.substring(0, 20);
+				else
+					t2 = tmp;
+				println("" + this.id + " > "+ (x++) +" > ignore: " + t2);
 				continue;
 			}
 			
 		}
-		String[] inreq = this.incomingRequest.split(" ");
-		this.requestType = inreq[0];
-		String urlS = inreq[1];
-		
-		// if url doesn't contain http/https
-		// prepend 'http://' (assumes not secure)
-		if (!urlS.startsWith("http"))
-			urlS = HTTP + urlS;
-		
-		if (this.requestType.equals(GET) && Cache.isCacheable(urlS))
-		{
-			/*
-			if in-cache
-				send HEAD to see if cached file is up to date
-				if up to date
-					send cached to client
-					{continue}
-				//else, treat as if not cached
-			//else
-			GET page
-			add to cache
-			send to client
-			*/
-			
-		}
-		else // non-cacheable page or non-GET request
-		{
-			try
-			{
-				// creates url from url given in client request
-				this.url = new URL(urlS);
-				// opens connection with url
-				this.connex = (HttpURLConnection) this.url.openConnection();
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - setting up connection to noncacheable page" );
-				return;
-			}
-			
-			// sets request type as taken from client
-			try
-			{
-				//if (this.requestType.equals("CONNECT"))
-					//this.requestType = "GET";
-				this.connex.setRequestMethod(this.requestType);
-			}
-			catch (ProtocolException e1)
-			{
-				e1.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - invalid request type: [" + this.requestType + "]");
-				return;
-			}
-			
-			// adds User-Agent field taken from client
-			this.connex.setRequestProperty("User-Agent", this.userAgent);
-			
-			// with HttpURLConnection, the first time the program encounters a 'response' method
-			// it fetches the response
-			
-			try {
-				this.responseCode = connex.getResponseCode();
-				this.isreader = new InputStreamReader(connex.getInputStream());
-				//this.responseBReader = new BufferedReader(this.isreader);
-			} catch (IOException e) {
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - cannot retrieve response" );
-				return;
-			}
-			
-			// writes contents of input buffer to output buffer
-			Integer i;
-			try {
-				while((i = this.isreader.read()) != null)
-					this.oswriter.write(i);
-			} catch (IOException e) {
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - cannot write response to output stream" );
-				//return;
-			}
-			try {
-				this.responseBWriter.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - cannot flush buffer" );
-				//return;
-			}
-			println("" + this.id + " > buffer flushed" );
-			
-
-			try {
-				this.isreader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - cannot close isreader" );
-				//return;
-			}
-			println("" + this.id + " > isreader closed" );
-			try {
-				this.responseBWriter.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - cannot close responseBWriter" );
-				//return;
-			}
-			println("" + this.id + " > responseBWriter closed");
-			//this.connex.disconnect();
-			//println("connex disconnected");
-			
-			try {
-				this.oswriter.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				println("" + this.id + " > Exception in Handler.run() - cannot close oswriter" );
-				//return;
-			}
-			println("" + this.id + " > oswriter closed");
-		}
+		println("" + this.id + " > exited while" );
 	}
 }

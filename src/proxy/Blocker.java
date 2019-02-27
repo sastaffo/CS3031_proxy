@@ -38,10 +38,30 @@ public class Blocker
 		println("Cannot unblock: [" + host + "] - not present in list of blocked sites");
 	}
 	
+	public void listBlockedSites()
+	{
+		if (this.blockedHosts.size() == 0)
+		{
+			println("No sites are blocked");
+			return;
+		}
+		println("List of blocked sites:");
+		int i=0;
+		for (String s : this.blockedHosts)
+		{
+			println("" + i++ + " > " + s);
+		}
+	}
+	
 	// checks if host of request made has been blocked
 	public boolean isBlocked(String host)
 	{
-		return (this.blockedHosts.contains(host));
+		for (String h : this.blockedHosts)
+		{
+			if (h.equals(host))
+				return true;
+		}
+		return false;
 	}
 
 	

@@ -29,6 +29,7 @@ public class Listener implements Runnable
 	
     // instance variables 
     int port; // the port on which to listen
+    Blocker blocker;
     
     ArrayList<Thread> handlers;
     
@@ -36,9 +37,10 @@ public class Listener implements Runnable
     
     
     // constructor
-    public Listener (int prt)
+    public Listener (int prt, Blocker b)
     {
         this.port = prt;
+        this.blocker = b;
         // set up array list for threaded handlers
         handlers = new ArrayList<>();
         
@@ -64,7 +66,7 @@ public class Listener implements Runnable
 				Socket skt = incomingSocket.accept();
 				
 				// Construct new handler thread
-				Thread sh = new Thread(new Handler(skt, handlerID++));
+				Thread sh = new Thread(new Handler(skt, handlerID++, this.blocker));
 				
 				// store threads in array list as created
 				this.handlers.add(sh);

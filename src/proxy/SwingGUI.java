@@ -118,23 +118,23 @@ public class SwingGUI
         reportArea.setWrapStyleWord(true);
         reportScrollPane = new JScrollPane(reportArea);
 
-        // put the gui components into the layout 
-        // note comments to keep track of numbers - becomes important with complex layouts	
+        // put the gui components into the layout
+        // commenting the index of the items helps within the layout function
         createLayout (
-                      portLabel, // item 0  
-                      portText, // item 1
-                      startButton, // item 2
-                      clearTextButton, // item 3
-                      reportScrollPane, // item 4
-                      fillerLabel1, // item 5
-                      domainLabel, // item 6
-                      domainText, // item 7
-                      blockButton, // item 8
-                      unblockButton, // item 9
-                      listBlockedButton, //item 10
-                      logCB, // item 11
-                      fillerLabel2, // item 12
-                      fillerLabel3 // item 13
+                      portLabel, 			// item  0  
+                      portText, 			// item  1
+                      startButton, 			// item  2
+                      clearTextButton, 		// item  3
+                      reportScrollPane, 	// item  4
+                      fillerLabel1, 		// item  5
+                      domainLabel, 			// item  6
+                      domainText, 			// item  7
+                      blockButton, 			// item  8
+                      unblockButton, 		// item  9
+                      listBlockedButton,	// item 10
+                      logCB,				// item 11
+                      fillerLabel2,			// item 12
+                      fillerLabel3 			// item 13
                       
 		      );
                       
@@ -142,14 +142,11 @@ public class SwingGUI
         setTitle ( TITLE );
         setLocationRelativeTo ( null );
         setDefaultCloseOperation(EXIT_ON_CLOSE);  
-        
-        // default port value - 8080 a typical proxy port
-        // ... and a great little cpu back in the day ...
+
         portText.setText(Integer.toString(PORT));
         domainText.setText("www.irishcoinage.com");
         
         // add the listeners to the components which need to trigger actions
-        // note - changing the URL text is not set to trigger anything
         startButton.addActionListener(this);
         clearTextButton.addActionListener(this);
         blockButton.addActionListener(this);
@@ -174,17 +171,6 @@ public class SwingGUI
         gl.setAutoCreateContainerGaps(true);
         gl.setAutoCreateGaps(true);
         
-		// this is a really tedious mechanism
-		// the horizontal and vertical groups define the same stuff
-		// but horizontal is parallel then sequential groups
-		// whereas vertical is sequential then parallel groups
-		// it becomes very messy for complex gui layouts
-		// and argument numbering makes it easy to mess up
-		// there is probably a better way - but this works.
-		// The layout we want here is :
-		//   0     1   :      portLabel       portText
-		//   2     3   :      startButton     cleartextButton
-		//      4      :           reportScrollPane
         gl.setHorizontalGroup (
             gl.createParallelGroup() 
                 .addGroup(gl.createSequentialGroup()
@@ -254,7 +240,6 @@ public class SwingGUI
                 port = Integer.parseInt(portText.getText());
                 println("Starting Listener on " + port  + NEWLINE );
                 startListener(port);
-                //startButton.setVisible(false); // hide the button - there is no Stop ! 
             }
             catch (Exception f)
             {
@@ -288,16 +273,16 @@ public class SwingGUI
             println("unidentified action requested >" + actionCommandText + "<" );
         }
            
-    } // actionPerformed ()
+    }
     
     
     /**
+     * main()
+     * sets up the GUI
      * @param args the command line arguments
      */
     public static void main(String[] args) 
     {        
-        // System.out.println("Hello World");  // console diag message 
-        
         EventQueue.invokeLater
         (
             () -> 
@@ -306,43 +291,34 @@ public class SwingGUI
                 gui.setVisible(true);
             }
         );	       
-    } // main()
+    }
     
     
+    /**
+     * println()
+     * takes in a message and prints it to the GUI text box
+     * @param message
+     */
     public static void println (String message )
     {
-		// Standard Output :		
-        // System.out.println ( message );
-
         // Text Area Output : 
         reportArea.append ( NEWLINE + message );
         // Make sure the newest text is visible
         reportArea.setCaretPosition(reportArea.getDocument().getLength());
-
         // update report area after each message is appended
         reportArea.repaint();	
     }   
         
     /**
-    *
+    * startListener()
     * @param port - int : port to listen on 
     * @throws  Exception - not handled (or is it?) 
     */
-    private void startListener ( int port)
-                          throws Exception  
-    // there are too many different ways to start threads 
-    // not clear which is correct in which case.
+    private void startListener ( int port) throws Exception  
     {
         try 
-        {	
-        	// Starting the thread  1 : calls the class constuctor
-        	// Thread lthread = new Thread(new Slistener(port));
-        	// listeningThreads.add(lthread);
-        	// Then this calls the run() method 
-        	// lthread.start();
-        	
-        	
-        	// Starting the thread  2 : calls the class constructor 
+        { 
+        	// Starting the thread: calls the Listener constructor 
         	Listener sl = new Listener(port, this.blocker);
         	// Then this calls the run() method
         	new Thread(sl).start();		
@@ -351,10 +327,7 @@ public class SwingGUI
         {
         	println("Something went wrong starting the listener" );
         }
-	
-	// do I need to keep this running (I don't think so) ?
-    }
-        
-} //  Class SwingListener       
+    }    
+}   
         
  

@@ -1,10 +1,16 @@
+/**
+ * Cache
+ * an LRU cache that maps Strings to Files.
+ * adapted from https://crunchify.com/how-to-create-a-simple-in-memory-cache-in-java-lightweight-cache/
+ */
+
 package proxy;
 
+// imports
 import java.util.ArrayList;
 import org.apache.commons.collections4.MapIterator;
 import org.apache.commons.collections4.map.LRUMap;
-// adapted from
-// https://crunchify.com/how-to-create-a-simple-in-memory-cache-in-java-lightweight-cache/
+
 @SuppressWarnings("hiding")
 public class Cache<String, File>
 {	
@@ -17,13 +23,25 @@ public class Cache<String, File>
 	protected class CacheObject {
 		public long lastAccessed;
 		public File value;
+		/**
+		 * CacheObject()
+		 * constructs a new CacheObject instance which holds the given File 
+		 * and records when it was last accessed in the cache
+		 * @param val - File, the object we want to cache
+		 */
 		protected CacheObject(File val)
 		{
 			this.lastAccessed = System.currentTimeMillis();
 			this.value = val;
 		}
 	}
-	// constructor
+	/**
+	 * Cache()
+	 * constructs a new Cache instance which maps Strings to CacheObjects, an class that holds the cached Files.
+	 * @param lifetimems - int, the length of time that a cached item will be kept after their last time accessed
+	 * @param timerInterval - determines how long the cache-threads will sleep for after being started.
+	 * @param maxItems - int, max size of cache
+	 */
 	public Cache(int lifetimems, long timerInterval, int maxItems)
 	{
 		this.lifetime = lifetimems * 1000;
@@ -46,6 +64,12 @@ public class Cache<String, File>
 		}
 	}
 	
+	/**
+	 * put()
+	 * creates a new entry into the cache
+	 * @param key - String, the file name of the file we want to cache
+	 * @param val - File, the file we want to cache
+	 */
 	public void put(String key, File val)
 	{
 		synchronized (this.cachemap)
@@ -53,7 +77,13 @@ public class Cache<String, File>
 			this.cachemap.put(key, new CacheObject(val));
 		}
 	}
-	
+	/**
+	 * get()
+	 * takes in a String key and returns its corresponding value
+	 * also updates the lastAccessed time of the file in the cache
+	 * @param key - String, the key used to find the desired File.
+	 * @return File - the value (of type File) that corresponds to the given key
+	 */
 	protected File get(String key)
 	{
 		synchronized (this.cachemap)
@@ -71,6 +101,11 @@ public class Cache<String, File>
 		
 	}
 	
+	/**
+	 * remove()
+	 * removes a key-value pair from the cache when given a key.
+	 * @param key - String, the file name of the file that we want to remove from the cache
+	 */
 	public void remove(String key)
 	{
 		synchronized (this.cachemap)
@@ -79,6 +114,11 @@ public class Cache<String, File>
 		}
 	}
 	
+	/**
+	 * size()
+	 * determines the size of the cache
+	 * @return int - size of cache
+	 */
 	public int size()
 	{
 		synchronized (this.cachemap)
@@ -87,6 +127,11 @@ public class Cache<String, File>
 		}
 	}
 	
+	/**
+	 * cleanup()
+	 * loops through all items in the cache and marks any that have not been accessed in this.lifetime or longer
+	 * the marked items are removed from the cache
+	 */
 	@SuppressWarnings("unchecked")
 	public void cleanup()
 	{
@@ -122,12 +167,14 @@ public class Cache<String, File>
 	}
 	
 	
-	
-	// analyses url string to determine if can be cached
-	// eg is a text file or image
+	/**
+	 * isCacheable()
+	 * compares url string to common text and image file extensions to determine if can be cached 
+	 * @param url - String, uses file extension to determine if url points to a cacheable page
+	 * @return boolean -  true if page is cacheable, false otherwise
+	 */
 	public static boolean isCacheable(java.lang.String url)
 	{
-		/*
 		url = url.toLowerCase();
 		
 		if (!url.contains("?")) {
@@ -142,10 +189,15 @@ public class Cache<String, File>
 					return true;
 			}
 		}
-		*/
 		return false;
 	}
 	
+	/**
+	 * isImage()
+	 * compares url to image file extensions to determine if url points to an image 
+	 * @param url - String, uses the file extension to determine if the url points to an image
+	 * @return boolean - true if url points to an image, false otherwise
+	 */
 	public static boolean isImage(java.lang.String url)
 	{
 		url = url.toLowerCase();

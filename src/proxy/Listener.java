@@ -7,19 +7,13 @@
 
 package proxy ;
 
+// imports
 import java.util.ArrayList;
 import proxy.Handler;
 import static proxy.SwingGUI.println;
-
-// import java.io.IOException;
-
 import java.net.Socket;
-// import java.net.SocketException;
 import java.net.ServerSocket;
 
-import static proxy.SwingGUI.println;
-
-// import swinglistener.Shandler;
 
 public class Listener implements Runnable
 // implements Runnable because it is started as a thread by the gui
@@ -28,14 +22,17 @@ public class Listener implements Runnable
 	static int handlerID = 0;
 	
     // instance variables 
-    int port; // the port on which to listen
+    int port;
     Blocker blocker;
+    ArrayList<Thread> handlers; // all handlers opened by the listener
+    ServerSocket incomingSocket; // initialises a socket using the port
     
-    ArrayList<Thread> handlers;
-    
-    ServerSocket incomingSocket;
-    
-    
+    /**
+     * Listener()
+     * constructs a new listener instance
+     * @param prt - port number that the Listener opens a socket to
+     * @param b - Blocker instance to be passed on to the Handler threads
+     */
     // constructor
     public Listener (int prt, Blocker b)
     {
@@ -56,6 +53,10 @@ public class Listener implements Runnable
         
     }
     
+    /**
+     * run()
+     * runs the Listener thread which starts a new Handler thread for each request received on its given socket
+     */
     public void run()
     {   	
     	while(true)
@@ -66,12 +67,12 @@ public class Listener implements Runnable
 				Socket skt = incomingSocket.accept();
 				
 				// Construct new handler thread
-				Thread sh = new Thread(new Handler(skt, handlerID++, this.blocker));
+				Thread t = new Thread(new Handler(skt, handlerID++, this.blocker));
 				
 				// store threads in array list as created
-				this.handlers.add(sh);
+				this.handlers.add(t);
 				
-				sh.start();	
+				t.start();	
 			} 
 			catch (Exception e) 
 			{	

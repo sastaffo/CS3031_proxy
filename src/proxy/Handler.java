@@ -9,23 +9,16 @@
 
 package proxy;
 
+// imports
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-// import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
@@ -54,23 +47,12 @@ public class Handler implements Runnable
 	Socket incomingSocket;
 	
 	// reader of request from client to proxy
-	InputStream clientproxyByteIn;
-	InputStreamReader clientproxyISReader;
 	BufferedReader clientproxyBReader;
 
-	// writer of request from proxy to server
-	ByteArrayOutputStream proxyserverByteOut;
-	OutputStreamWriter proxyserverOSWriter;
-	BufferedWriter proxyserverBWriter;
-	
 	// reader of response from server to proxy
-	InputStream serverproxyByte;
-	InputStreamReader serverproxyISReader;
 	BufferedReader serverproxyBReader;
 
 	// writer of response from proxy to client
-	OutputStream proxyclientByteOut;
-	OutputStreamWriter proxyclientOSWriter;
 	BufferedWriter proxyclientBWriter;
 	
 	
@@ -79,12 +61,20 @@ public class Handler implements Runnable
 	String requestType;
 	String host;
 	String userAgent;
+	String contentLength;
 	
 	int responseCode;
 	
 	URL url;
 	HttpURLConnection connex;
 
+	/**
+	 * Handler
+	 * Creates a new Handler object
+	 * @param skt - Client's socket
+	 * @param id - handler's id number
+	 * @param b - Blocker, contains list of blocked domains
+	 */
 	public Handler(Socket skt, int id, Blocker b)
 	{
 		this.id = id;
@@ -96,13 +86,10 @@ public class Handler implements Runnable
 		try
 		{
 			this.incomingSocket.setSoTimeout(TIMEOUT);
-			this.clientproxyByteIn = this.incomingSocket.getInputStream();
-			this.clientproxyISReader = new InputStreamReader(this.clientproxyByteIn);
-			this.clientproxyBReader = new BufferedReader(this.clientproxyBReader);
-			
-			this.proxyclientByteOut = this.incomingSocket.getOutputStream();
-			this.proxyclientOSWriter = new OutputStreamWriter(this.proxyclientByteOut);
-			this.proxyserverBWriter = new BufferedWriter(this.proxyclientOSWriter);
+			this.clientproxyBReader = new BufferedReader(new InputStreamReader(
+					this.incomingSocket.getInputStream()));
+			this.proxyclientBWriter = new BufferedWriter(new OutputStreamWriter(
+					this.incomingSocket.getOutputStream()));
 			
 		} 
 		catch (Exception e) 
@@ -113,13 +100,20 @@ public class Handler implements Runnable
 	} // END Handler()
 	
 
-
-	
+	/**
+	 * run
+	 * runs the handler thread to process request and send server's response to client
+	 */
+	@Override
 	public void run()
 	{
 		println("" + this.id + " > In Handler.run()  " );
 		
 		this.processRequest();
+		if (this.incomingRequest == null)
+		{
+			return;
+		}
 		// before going further, checks if the host has been blocked by proxy user.
 		if (this.blocker.isBlocked(this.host))
 		{
@@ -134,7 +128,10 @@ public class Handler implements Runnable
 		
 		// checks if https request
 		if (this.requestType.equals(CONNECT))
+		{
 			this.secureRequest(urlS);
+			return;
+		}
 		
 		// if url doesn't contain http
 		// prepend 'http://'
@@ -155,8 +152,9 @@ public class Handler implements Runnable
 	}
 	
 	/**
-	 * 
-	 * @param urlString
+	 * secureRequest()
+	 * handles https connections
+	 * @param urlString - String of the url
 	 */
 	private void secureRequest(String urlString)
 	{
@@ -164,8 +162,9 @@ public class Handler implements Runnable
 	}
 	
 	/**
-	 * 
-	 * @param urlString
+	 * cacheablePage()
+	 * handles pages that are cacheable
+	 * @param urlString - String of the url
 	 */
 	private void cacheablePage(String urlString)
 	{
@@ -184,8 +183,9 @@ public class Handler implements Runnable
 	}
 		
 	/**
-	 * 
-	 * @param urlString
+	 * nonCacheablePage()
+	 * handles pages that are not cacheable
+	 * @param urlString - String of the url
 	 */
 	private void nonCacheablePage(String urlString)
 	{
@@ -206,7 +206,11 @@ public class Handler implements Runnable
 			return;
 		}
 		// adds User-Agent field taken from client
-		this.connex.setRequestProperty("User-Agent", this.userAgent);
+		if (this.userAgent != null)
+			this.connex.setRequestProperty("User-Agent", this.userAgent);
+		if (this.contentLength!=null)
+			this.connex.setRequestProperty("Content-Length", this.contentLength);
+		this.connex.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 		
 		// sets request type as taken from client
 		try
@@ -264,9 +268,7 @@ public class Handler implements Runnable
 			}
 			else
 			{
-				this.serverproxyByte = connex.getInputStream();
-				this.serverproxyISReader = new InputStreamReader(this.serverproxyByte);
-				this.serverproxyBReader = new BufferedReader(this.serverproxyISReader);
+				this.serverproxyBReader = new BufferedReader(new InputStreamReader(connex.getInputStream()));
 				
 				this.proxyclientBWriter.write(httpResponseCode(RESPONSE_CODE_OK));
 				
@@ -282,33 +284,13 @@ public class Handler implements Runnable
 		{
 			e.printStackTrace();
 			println("" + this.id + " > Exception in Handler.run() - cannot write response to output stream" );
-			//return;
+			return;
 		}
-
-		try {
-			this.serverproxyISReader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			println("" + this.id + " > Exception in Handler.run() - cannot close serverproxyISReader" );
-			//return;
-		}
-		println("" + this.id + " > serverproxyISReader closed" );
-
-		//this.connex.disconnect();
-		//println("connex disconnected");
-		
-		try {
-			this.proxyclientOSWriter.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-			println("" + this.id + " > Exception in Handler.run() - cannot close proxyclientOSWriter" );
-			//return;
-		}
-		println("" + this.id + " > proxyclientOSWriter closed");
 		return;
 	}
 	
 	/**
+	 * processRequest()
 	 * split incoming request request into different segments and adds them to instance variables
 	 */
 	private void processRequest()
@@ -356,6 +338,10 @@ public class Handler implements Runnable
 				this.userAgent = tmp.substring(12);
 				println("" + this.id + " > USER-AGENT = [" + this.userAgent + "]");
 			}
+			else if (tmp.startsWith("Content-Length:"))
+			{
+				this.contentLength = tmp.substring(15);
+			}
 			else {
 				String t2;
 				if (tmp.length() > 20)
@@ -370,6 +356,12 @@ public class Handler implements Runnable
 		println("" + this.id + " > exited while" );
 	}
 	
+	/**
+	 * httpResponseCode()
+	 * takes in a code and returns a formatted http response message to send to the client
+	 * @param code - String of http response code
+	 * @return String formatted http response message
+	 */
 	private static String httpResponseCode(String code)
 	{
 		return (VERSION + " " + code + "\n" + PROXY_AGENT + "\n\r\n");
